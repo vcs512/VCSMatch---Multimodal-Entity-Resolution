@@ -52,3 +52,21 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+  eda:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: uv run python -m src.services.eda.eda_service --config configs/eda/eda.json
+    volumes:
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

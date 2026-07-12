@@ -65,21 +65,58 @@ Extract SigLIP text embeddings from a CSV column.
 | `batch_size` | int | no | 128 | Texts per forward pass |
 | `device` | string | no | `"cuda"` if available else `"cpu"` | Torch device |
 
-#### Outputs
+#### Outputs - Text Embedding
 
 - `{output_dir}/title_embeddings.safetensors` — tensor key `"embeddings"`, shape `(N, 768)`
 - `{output_dir}/title_index.json` — maps integer index → id (only if `id_column` set)
 
-#### Usage
+#### Usage - Text Embedding
 
-For product titles:
+##### Dataset product titles
 
 ```bash
 docker compose up embedding-text-titles
 ```
 
-For zero-shot prompts:
+##### Zero-shot prompts
+
+Example of `prompts.csv`:
+
+```csv
+posting_id,title
+a product isolated,a product isolated
+many products together,many products together
+```
+
+Run service:
 
 ```bash
 docker compose up embedding-text-prompts
+```
+
+### 3. EDA Service
+
+Runs zero-shot classification (vision vs. prompt embeddings) and language
+detection on product titles, then merges both scores into the source CSV.
+
+#### Config schema (`configs/eda/eda.json`)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `train_csv_path` | string | yes | — | Path to the training CSV |
+| `text_column` | string | no | `"title"` | Column with product titles for language detection |
+| `vision_embeddings_path` | string | yes | — | Path to pre-computed image embeddings (`.safetensors`) |
+| `text_prompt_embeddings_path` | string | yes | — | Path to zero-shot prompt embeddings (`.safetensors`) |
+| `augmented_csv_path` | string | yes | — | Output path for the augmented CSV |
+
+#### Outputs - EDA
+
+- `{augmented_csv_path}` — CSV with two extra columns:
+  - `multiples_score` — probability the image shows multiple products together (cosine-similarity zero-shot classification)
+  - `indonesian_score` — confidence that the product title is Indonesian (lingua language detection)
+
+#### Usage - EDA
+
+```bash
+docker compose up eda
 ```

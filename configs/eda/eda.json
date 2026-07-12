@@ -1,0 +1,7 @@
+{
+  "train_csv_path": "data/sanity/train.csv",
+  "text_column": "title",
+  "vision_embeddings_path": "data/sanity/embeddings/images/image_embeddings.safetensors",
+  "text_prompt_embeddings_path": "data/sanity/embeddings/prompts/title_embeddings.safetensors",
+  "augmented_csv_path": "data/sanity/eda/train_augmented.csv"
+}
