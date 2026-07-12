@@ -1,0 +1,54 @@
+services:
+  embedding-vision:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: uv run python -m src.services.embedding.vision --config configs/embedding/vision.json
+    volumes:
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  embedding-text-titles:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: uv run python -m src.services.embedding.text --config configs/embedding/text_titles.json
+    volumes:
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  embedding-text-prompts:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: uv run python -m src.services.embedding.text --config configs/embedding/text_prompts.json
+    volumes:
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

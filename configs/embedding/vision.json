@@ -1,0 +1,10 @@
+{
+  "model_path": "checkpoints/siglip2-base-patch16-224",
+  "image_dir": "data/train_images",
+  "output_dir": "data/sanity/embeddings/images",
+  "csv_path": "data/sanity/train.csv",
+  "image_column": "image",
+  "batch_size": 64,
+  "device": "cuda",
+  "num_workers": 0
+}

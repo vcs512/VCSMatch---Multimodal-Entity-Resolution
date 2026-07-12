@@ -20,5 +20,13 @@ Applied in the "Shopee - Price Match Garantee" Kaggle competition/dataset.
 - Every service must have the inputs, usage and outputs expected described in
     the project README.md
 - `data/` directory contains the dataset to be used
+- `checkpoints/` directory contains the AI models
 - `tests/` directory contains unity tests
 - Working with reduced VRAM (4 GB)
+
+## Pipelines
+
+- Normalized embeddings from modalities (vision and text) are computed offline
+    by the `embedding` services (numpy safetensors)
+- Embeddings (safetensors) accompany a `*_index.json` file which maps each line
+    of the object loaded (keys) to what it represents (values)
