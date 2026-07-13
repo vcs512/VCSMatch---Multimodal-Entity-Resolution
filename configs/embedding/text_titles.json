@@ -1,8 +1,8 @@
 {
   "model_path": "checkpoints/siglip2-base-patch16-224",
-  "csv_path": "data/sanity/train.csv",
+  "csv_path": "data/train.csv",
   "column": "title",
-  "output_dir": "data/sanity/embeddings/titles",
+  "output_dir": "data/embeddings/titles",
   "id_column": "posting_id",
   "batch_size": 128,
   "device": "cuda"

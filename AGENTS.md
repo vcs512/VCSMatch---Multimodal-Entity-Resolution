@@ -11,7 +11,7 @@ Applied in the "Shopee - Price Match Garantee" Kaggle competition/dataset.
 - docker compose for running services
 - SOLID principles
 - Concise comments (never inline)
-- Google style docstrings
+- Google style docstrings (always state args and returns when not 'None')
 - Ruff linter
 - Explicit arguments names in functions (avoid positionals)
 - Layered architecture (folders: `services/`, `core/`, `schemas/`)

@@ -12,4 +12,4 @@ class EDAConfig(BaseModel):
     text_column: str = "title"
     vision_embeddings_path: Path
     text_prompt_embeddings_path: Path
-    augmented_csv_path: Path
+    output_dir: Path

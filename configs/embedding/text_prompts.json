@@ -1,8 +1,8 @@
 {
   "model_path": "checkpoints/siglip2-base-patch16-224",
-  "csv_path": "data/sanity/prompts.csv",
+  "csv_path": "data/prompts.csv",
   "column": "title",
-  "output_dir": "data/sanity/embeddings/prompts",
+  "output_dir": "data/embeddings/prompts",
   "id_column": "posting_id",
   "batch_size": 128,
   "device": "cuda"

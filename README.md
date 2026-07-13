@@ -107,13 +107,27 @@ detection on product titles, then merges both scores into the source CSV.
 | `text_column` | string | no | `"title"` | Column with product titles for language detection |
 | `vision_embeddings_path` | string | yes | — | Path to pre-computed image embeddings (`.safetensors`) |
 | `text_prompt_embeddings_path` | string | yes | — | Path to zero-shot prompt embeddings (`.safetensors`) |
-| `augmented_csv_path` | string | yes | — | Output path for the augmented CSV |
+| `output_dir` | string | yes | — | Root directory for all EDA outputs |
 
 #### Outputs - EDA
 
-- `{augmented_csv_path}` — CSV with two extra columns:
-  - `multiples_score` — probability the image shows multiple products together (cosine-similarity zero-shot classification)
-  - `indonesian_score` — confidence that the product title is Indonesian (lingua language detection)
+- `{output_dir}/` — root directory containing the following:
+
+  - `train_augmented.csv` — CSV with two extra columns:
+    - `multiples_score` — probability the image shows multiple products together (cosine-similarity zero-shot classification)
+    - `indonesian_score` — confidence that the product title is Indonesian (lingua language detection)
+
+  - `row/` — per-row statistics:
+    - `train_augmented_rows_statistics.csv` — `describe()` on `multiples_score` and `indonesian_score`
+    - `multiples_score_boxplot.jpg`
+    - `indonesian_score_boxplot.jpg`
+
+  - `group/` — per-group statistics (grouped by `label_group`):
+    - `train_augmented_grouped_statistics.csv` — aggregates: `product_count`, `multiples_score_mean`, `multiples_score_std`, `indonesian_score_mean`, `indonesian_score_std`
+    - `train_augmented_grouped_statistics_describe.csv` — `describe()` on `product_count`, `multiples_score_std`, `indonesian_score_std`
+    - `product_count_boxplot.jpg`
+    - `multiples_score_std_boxplot.jpg`
+    - `indonesian_score_std_boxplot.jpg`
 
 #### Usage - EDA
 
