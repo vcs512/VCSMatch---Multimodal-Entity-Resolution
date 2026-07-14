@@ -134,3 +134,41 @@ detection on product titles, then merges both scores into the source CSV.
 ```bash
 docker compose up eda
 ```
+
+### 4. Dataset Split Service
+
+Stratifies product groups by variance and splits into train/val/test preserving
+stratum proportions.
+
+#### Config schema (`configs/datasets/dataset_split.json`)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `eda_dir` | string | yes | — | Path to EDA output directory (must contain `train_augmented.csv` and `group/train_augmented_grouped_statistics.csv`) |
+| `output_dir` | string | yes | — | Directory to write split outputs |
+
+#### Strategy - Dataset Split
+
+A group is labelled `"higher_variance"` if any of `multiples_score_std`,
+`indonesian_score_std`, or `product_count` exceeds its column's 75th percentile
+(Q3) across any group.  Otherwise it is `"lower_variance"`.
+Groups are then split 70/15/15 (train/val/test) while preserving stratum
+proportions.
+
+#### Inputs - Dataset Split
+
+- `train_augmented.csv` — per-row augmented data with `label_group`, `multiples_score`, `indonesian_score`
+- `group/train_augmented_grouped_statistics.csv` — pre-computed group aggregates (from EDA service)
+
+#### Outputs - Dataset Split
+
+- `group_summary.csv` — group-level data with `stratum` and `split` columns
+- `assignments.csv` — per-row data with `stratum` and `split` columns added
+- `stratum_distribution.csv` — group count per stratum
+- `group_split_distribution.csv` — group count per split
+
+#### Usage - Dataset Split
+
+```bash
+docker compose up dataset-split
+```
