@@ -6,6 +6,7 @@ import logging
 import numpy as np
 import pandas as pd
 import torch
+from tqdm import tqdm
 from PIL import Image
 from safetensors.numpy import save_file
 from transformers import SiglipModel, SiglipProcessor
@@ -16,11 +17,11 @@ logger = logging.getLogger(__name__)
 
 
 class VisionEmbeddingService:
-    """Extract SigLIP vision embeddings from a directory of product images.
+    """Extract SigLIP vision embeddings from a CSV's image column.
 
-    Images are loaded in batches, processed by the SigLIP vision tower,
-    and saved as a single .safetensors file ordered by CSV row (or
-    alphabetically when no CSV is provided).
+    Images listed in a CSV column are loaded from ``image_dir``, processed
+    by the SigLIP vision tower, and saved as a single .safetensors file
+    ordered by CSV row.
 
     Usage:
         service = VisionEmbeddingService("configs/embedding/vision.json")
@@ -77,19 +78,13 @@ class VisionEmbeddingService:
         return images
 
     def _get_image_filenames(self) -> list[str]:
-        """Return ordered list of image filenames, either from CSV or directory scan.
+        """Return ordered list of image filenames from the CSV.
 
         Returns:
             Ordered list of image filenames.
         """
-        if self.config.csv_path is not None:
-            df = pd.read_csv(filepath_or_buffer=self.config.csv_path)
-            return df[self.config.image_column].astype(str).tolist()
-        return sorted(
-            p.name
-            for p in self.config.image_dir.iterdir()
-            if p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp")
-        )
+        df = pd.read_csv(filepath_or_buffer=self.config.csv_path)
+        return df[self.config.column].astype(str).tolist()
 
     def process_all(self) -> np.ndarray:
         """Process all images and save embeddings to disk.
@@ -102,7 +97,11 @@ class VisionEmbeddingService:
         logger.info("Processing %d images", len(filenames))
 
         all_embeddings = []
-        for i in range(0, len(filenames), self.config.batch_size):
+        for i in tqdm(
+            range(0, len(filenames), self.config.batch_size),
+            desc="Encoding images",
+            unit="batch",
+        ):
             batch = filenames[i : i + self.config.batch_size]
             images = self._load_images(batch)
             inputs = self.processor(images=images, return_tensors="pt").to(
@@ -113,25 +112,22 @@ class VisionEmbeddingService:
                 emb = outputs.pooler_output.cpu().numpy()
             all_embeddings.append(emb)
 
-            if ((i // self.config.batch_size) + 1) % 10 == 0:
-                logger.info(
-                    "Processed %d / %d images", i + len(batch), len(filenames)
-                )
-
         embeddings = np.concatenate(all_embeddings, axis=0)
         norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
         embeddings = embeddings / np.maximum(norms, 1e-12)
         save_file(
             tensor_dict={"embeddings": embeddings},
-            filename=str(
-                self.config.output_dir / "image_embeddings.safetensors"
-            ),
+            filename=str(self.config.output_dir / "embedding.safetensors"),
         )
         logger.info("Saved %d image embeddings", len(embeddings))
 
-        index = {str(idx): fname for idx, fname in enumerate(filenames)}
+        df = pd.read_csv(filepath_or_buffer=self.config.csv_path)
+        index = {
+            str(idx): row[self.config.id_column]
+            for idx, row in df.iterrows()
+        }
         with open(
-            file=self.config.output_dir / "image_index.json", mode="w"
+            file=self.config.output_dir / "index.json", mode="w"
         ) as f:
             json.dump(obj=index, fp=f, indent=2)
 

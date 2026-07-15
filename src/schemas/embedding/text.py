@@ -12,6 +12,6 @@ class TextEmbeddingConfig(BaseModel):
     csv_path: Path
     column: str
     output_dir: Path
-    id_column: str | None = None
+    id_column: str
     batch_size: int = 128
     device: str | None = None

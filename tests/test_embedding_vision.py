@@ -13,33 +13,36 @@ class TestVisionEmbeddingConfig:
         config = VisionEmbeddingConfig(
             model_path="checkpoints/siglip2-base-patch16-224",
             image_dir="data/train_images",
+            csv_path="data/train.csv",
+            column="image",
             output_dir="data/embeddings",
+            id_column="posting_id",
         )
         assert config.model_path == Path("checkpoints/siglip2-base-patch16-224")
         assert config.image_dir == Path("data/train_images")
+        assert config.csv_path == Path("data/train.csv")
+        assert config.column == "image"
         assert config.output_dir == Path("data/embeddings")
-        assert config.csv_path is None
-        assert config.image_column == "image"
+        assert config.id_column == "posting_id"
         assert config.batch_size == 64
         assert config.device is None
-        assert config.num_workers == 0
 
     def test_valid_full(self):
         config = VisionEmbeddingConfig(
             model_path="checkpoints/siglip2-base-patch16-224",
             image_dir="data/train_images",
-            output_dir="data/embeddings",
             csv_path="data/train.csv",
-            image_column="photo",
+            column="photo",
+            output_dir="data/embeddings",
+            id_column="posting_id",
             batch_size=32,
             device="cuda",
-            num_workers=4,
         )
         assert config.csv_path == Path("data/train.csv")
-        assert config.image_column == "photo"
+        assert config.column == "photo"
+        assert config.id_column == "posting_id"
         assert config.batch_size == 32
         assert config.device == "cuda"
-        assert config.num_workers == 4
 
     def test_missing_required_field(self):
         with pytest.raises(ValidationError):
@@ -52,12 +55,12 @@ class TestVisionEmbeddingConfig:
         data = {
             "model_path": "checkpoints/siglip2-base-patch16-224",
             "image_dir": "data/train_images",
-            "output_dir": "data/embeddings",
             "csv_path": "data/train.csv",
-            "image_column": "image",
+            "column": "image",
+            "output_dir": "data/embeddings",
+            "id_column": "posting_id",
             "batch_size": 64,
             "device": "cuda",
-            "num_workers": 0,
         }
         config = VisionEmbeddingConfig.model_validate(data)
         assert config.model_path == Path("checkpoints/siglip2-base-patch16-224")

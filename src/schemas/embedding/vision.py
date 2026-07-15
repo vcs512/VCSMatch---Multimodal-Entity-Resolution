@@ -10,9 +10,9 @@ class VisionEmbeddingConfig(BaseModel):
 
     model_path: Path
     image_dir: Path
+    csv_path: Path
+    column: str
     output_dir: Path
-    csv_path: Path | None = None
-    image_column: str = "image"
+    id_column: str
     batch_size: int = 64
     device: str | None = None
-    num_workers: int = 0

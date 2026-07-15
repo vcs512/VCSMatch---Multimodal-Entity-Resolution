@@ -31,22 +31,22 @@ Extract SigLIP vision embeddings from product images.
 | `model_path` | string | yes | — | Path to SigLIP checkpoint directory |
 | `image_dir` | string | yes | — | Directory containing product images |
 | `output_dir` | string | yes | — | Directory to write embeddings |
-| `csv_path` | string | no | null | CSV with image filenames; if null, scans `image_dir` |
-| `image_column` | string | no | `"image"` | Column name in CSV with filenames |
+| `csv_path` | string | yes | — | CSV file with image filenames |
+| `column` | string | yes | — | Column name in CSV with filenames |
+| `id_column` | string | yes | — | Column to use for index mapping |
 | `batch_size` | int | no | 64 | Images per forward pass |
 | `device` | string | no | `"cuda"` if available else `"cpu"` | Torch device |
-| `num_workers` | int | no | 0 | DataLoader workers |
 
 #### Outputs - Vision Embedding
 
-- `{output_dir}/image_embeddings.safetensors` — tensor key `"embeddings"`,
-    shape `(N, embedding_dim)`, ordered by CSV row (or filename sort)
-- `{output_dir}/image_index.json` — maps integer index → filename
+- `{output_dir}/embedding.safetensors` — tensor key `"embeddings"`,
+    shape `(N, embedding_dim)`, ordered by CSV row
+- `{output_dir}/index.json` — maps integer index → id from `id_column`
 
 #### Usage - Vision Embedding
 
 ```bash
-docker compose up embedding-vision
+docker compose run --rm embedding-vision
 ```
 
 ### 2. Text Embedding Service
@@ -61,21 +61,21 @@ Extract SigLIP text embeddings from a CSV column.
 | `csv_path` | string | yes | — | CSV file to read texts from |
 | `column` | string | yes | — | Column with text data |
 | `output_dir` | string | yes | — | Directory to write embeddings |
-| `id_column` | string | no | null | Column to use for index mapping |
+| `id_column` | string | yes | — | Column to use for index mapping |
 | `batch_size` | int | no | 128 | Texts per forward pass |
 | `device` | string | no | `"cuda"` if available else `"cpu"` | Torch device |
 
 #### Outputs - Text Embedding
 
-- `{output_dir}/title_embeddings.safetensors` — tensor key `"embeddings"`, shape `(N, 768)`
-- `{output_dir}/title_index.json` — maps integer index → id (only if `id_column` set)
+- `{output_dir}/embedding.safetensors` — tensor key `"embeddings"`, shape `(N, 768)`
+- `{output_dir}/index.json` — maps integer index → id from `id_column`
 
 #### Usage - Text Embedding
 
 ##### Dataset product titles
 
 ```bash
-docker compose up embedding-text-titles
+docker compose run --rm embedding-text-titles
 ```
 
 ##### Zero-shot prompts
@@ -91,7 +91,7 @@ many products together,many products together
 Run service:
 
 ```bash
-docker compose up embedding-text-prompts
+docker compose run --rm embedding-text-prompts
 ```
 
 ### 3. EDA Service

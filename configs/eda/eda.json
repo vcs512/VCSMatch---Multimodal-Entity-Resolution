@@ -1,7 +1,7 @@
 {
   "train_csv_path": "data/train.csv",
   "text_column": "title",
-  "vision_embeddings_path": "data/embeddings/images/image_embeddings.safetensors",
-  "text_prompt_embeddings_path": "data/embeddings/prompts/title_embeddings.safetensors",
+  "vision_embeddings_path": "data/embeddings/images/embedding.safetensors",
+  "text_prompt_embeddings_path": "data/embeddings/prompts/embedding.safetensors",
   "output_dir": "data/eda"
 }

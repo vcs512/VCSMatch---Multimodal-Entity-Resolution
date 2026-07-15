@@ -6,6 +6,7 @@ import logging
 import numpy as np
 import pandas as pd
 import torch
+from tqdm import tqdm
 from safetensors.numpy import save_file
 from transformers import SiglipModel, SiglipProcessor
 
@@ -74,7 +75,11 @@ class TextEmbeddingService:
             batch_size = len(texts)
 
         all_embeddings = []
-        for i in range(0, len(texts), batch_size):
+        for i in tqdm(
+            range(0, len(texts), batch_size),
+            desc="Encoding texts",
+            unit="batch",
+        ):
             batch_texts = texts[i : i + batch_size]
             inputs = self.processor(
                 text=batch_texts,
@@ -106,20 +111,17 @@ class TextEmbeddingService:
         save_file(
             tensor_dict={"embeddings": embeddings},
             filename=str(
-                self.config.output_dir / "title_embeddings.safetensors"
+                self.config.output_dir / "embedding.safetensors"
             ),
         )
         logger.info("Saved %d title embeddings", len(embeddings))
 
-        if self.config.id_column:
-            index = {
-                str(idx): row[self.config.id_column]
-                for idx, row in df.iterrows()
-            }
-            with open(
-                file=self.config.output_dir / "title_index.json", mode="w"
-            ) as f:
-                json.dump(obj=index, fp=f, indent=2)
+        index = {
+            str(idx): row[self.config.id_column]
+            for idx, row in df.iterrows()
+        }
+        with open(file=self.config.output_dir / "index.json", mode="w") as f:
+            json.dump(obj=index, fp=f, indent=2)
 
 
 if __name__ == "__main__":

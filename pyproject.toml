@@ -24,6 +24,7 @@ dependencies = [
     "timm>=1.0.28",
     "torch==2.7.1; sys_platform == 'linux'",
     "torchvision; sys_platform == 'linux'",
+    "tqdm>=4.68.4",
     "transformers>=5.13.1",
 ]
 

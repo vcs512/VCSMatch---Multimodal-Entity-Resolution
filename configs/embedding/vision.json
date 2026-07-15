@@ -1,10 +1,10 @@
 {
   "model_path": "checkpoints/siglip2-base-patch16-224",
   "image_dir": "data/train_images",
-  "output_dir": "data/embeddings/images",
   "csv_path": "data/train.csv",
-  "image_column": "image",
+  "column": "image",
+  "output_dir": "data/embeddings/images",
+  "id_column": "posting_id",
   "batch_size": 64,
-  "device": "cuda",
-  "num_workers": 0
+  "device": "cuda"
 }
