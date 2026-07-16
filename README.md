@@ -172,3 +172,48 @@ proportions.
 ```bash
 docker compose up dataset-split
 ```
+
+### 5. Retrieval Service
+
+Runs k-nearest-neighbors search using FAISS (GPU) on pre-computed embeddings,
+filtered to a specific dataset split. Returns retrieved posting IDs as JSON
+lists for each query product.
+
+#### Config schema (`configs/retrieval/retrieval.json`)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `embeddings_dir` | string | yes | — | Directory containing `embedding.safetensors` and `index.json` |
+| `assignments_path` | string | yes | — | Path to `assignments.csv` with `split` column |
+| `output_dir` | string | yes | — | Directory to write results CSV |
+| `split` | string | no | `"test"` | Which split to query and search within |
+| `k` | int | no | 50 | Number of nearest neighbors |
+| `threshold` | float | no | 0.5 | Minimum cosine similarity to retain a neighbor |
+
+#### Strategy - Retrieval
+
+Embeddings are L2-normalized, so FAISS inner product equals cosine similarity.
+Only embeddings belonging to the configured split are loaded into the index.
+For each query product, the top-k nearest neighbors are retrieved (self-match
+is included) and any neighbor below the cosine-similarity threshold
+is discarded. Retrieved posting IDs are serialized as a JSON string list.
+
+#### Inputs - Retrieval
+
+- `{embeddings_dir}/embedding.safetensors` — pre-computed embeddings
+- `{embeddings_dir}/index.json` — maps integer index → posting_id
+- `assignments.csv` — per-row data with `split` and `stratum` columns (from Dataset Split service)
+
+#### Outputs - Retrieval
+
+- `retrieval_results.csv` — one row per query product with columns:
+  - `posting_id` — query product ID
+  - `label_group` — ground-truth group label
+  - `stratum` — stratum assignment
+  - `retrieved_products` — JSON string list of retrieved posting IDs
+
+#### Usage - Retrieval
+
+```bash
+docker compose up retrieval
+```

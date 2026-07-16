@@ -88,3 +88,21 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+  retrieval:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: uv run python -m src.services.retrieval.retrieval --config configs/retrieval/retrieval.json
+    volumes:
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

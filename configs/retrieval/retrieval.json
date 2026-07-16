@@ -1,0 +1,8 @@
+{
+  "embeddings_dir": "data/embeddings/images",
+  "assignments_path": "data/splits/assignments.csv",
+  "output_dir": "data/retrieval/images",
+  "split": "test",
+  "k": 51,
+  "threshold": 0.8
+}
