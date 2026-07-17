@@ -106,3 +106,14 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
+
+  evaluation:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: uv run python -m src.services.evaluation.evaluation --config configs/evaluation/evaluation.json
+    volumes:
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - ./results:/app/results

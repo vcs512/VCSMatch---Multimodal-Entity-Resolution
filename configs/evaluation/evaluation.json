@@ -1,0 +1,5 @@
+{
+  "retrieval_results_path": "data/retrieval/images/retrieval_results.csv",
+  "output_dir": "results/evaluation/images",
+  "recall_ks": [5, 10, 50]
+}

@@ -217,3 +217,42 @@ is discarded. Retrieved posting IDs are serialized as a JSON string list.
 ```bash
 docker compose up retrieval
 ```
+
+### 6. Evaluation Service
+
+Computes retrieval metrics (recall@k, precision, recall, f1) from retrieval
+results and produces per-row, overall, and per-stratum summaries.
+
+#### Config schema (`configs/evaluation/evaluation.json`)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `retrieval_results_path` | string | yes | — | Path to `retrieval_results.csv` (from Retrieval service) |
+| `output_dir` | string | yes | — | Directory to write evaluation outputs |
+| `recall_ks` | array[int] | no | `[5, 10, 50]` | k values for recall@k computation |
+
+#### Strategy - Evaluation
+
+For each query row, the retrieved posting IDs are compared against the
+ground-truth `label_group`. Precision, recall, and F1 are computed from the
+full retrieved list. Recall@k is computed via a single pass through the
+retrieved list with cumulative match counting. Metrics are summarized as
+overall means and grouped by stratum.
+
+#### Inputs - Evaluation
+
+- `retrieval_results.csv` — per-row retrieval results with `label_group`,
+  `stratum`, and `retrieved_products` (from Retrieval service)
+
+#### Outputs - Evaluation
+
+- `evaluation_results.csv` — per-row metrics: `precision`, `recall`, `f1`,
+  `recall@5`, `recall@10`, `recall@50`
+- `evaluation_summary.csv` — overall mean of each metric
+- `evaluation_by_stratum.csv` — mean of each metric grouped by stratum
+
+#### Usage - Evaluation
+
+```bash
+docker compose run --rm evaluation
+```
