@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 
 import numpy as np
 import pandas as pd
@@ -13,6 +14,81 @@ from transformers import SiglipModel, SiglipProcessor
 from src.schemas.embedding.text import TextEmbeddingConfig
 
 logger = logging.getLogger(__name__)
+
+_EMOJI_PATTERN = re.compile(
+    "["
+    "\U0001F300-\U0001F9FF"
+    "\U0001FA00-\U0001FA6F"
+    "\U0001FA70-\U0001FAFF"
+    "\U00002600-\U000027BF"
+    "\U0000FE00-\U0000FE0F"
+    "\U0000200D"
+    "\U0000231A-\U000023FF"
+    "\U000025AA-\U000025FF"
+    "\U00002934-\U00002935"
+    "\U00002B05-\U00002B55"
+    "\U00003030"
+    "\U0000303D"
+    "\U00003297"
+    "\U00003299"
+    "\U0001F600-\U0001F64F"
+    "\U0001F680-\U0001F6FF"
+    "\U0001F1E0-\U0001F1FF"
+    "\U0000260E-\U0000260F"
+    "\u20E3"
+    "\u2B50"
+    "\u2764"
+    "]+"
+)
+
+_SLANGS = sorted(
+    [
+        "readystock",
+        "ready stock",
+        "ready",
+        "original",
+        "best seller",
+        "promo",
+        "promotion",
+        "grosir",
+        "murah meriah",
+        "murah",
+        "termurah",
+        "diskon",
+        "gratis ongkir",
+        "cod",
+        "limited",
+        "brand",
+        "import",
+        "viral",
+        "obral",
+    ],
+    key=len,
+    reverse=True,
+)
+
+_SLANG_PATTERN = re.compile(
+    r"\b(?:" + "|".join(re.escape(s) for s in _SLANGS) + r")\b\s*",
+    flags=re.IGNORECASE,
+)
+
+_NOISE_PATTERN = re.compile(r"\\x[0-9a-fA-F]{2}|[()\[\]!]")
+
+
+def clean_text(text: str) -> str:
+    """Remove emoji characters and common retail slangs from a text string.
+
+    Args:
+        text: The input product title.
+
+    Returns:
+        The cleaned text with emojis and slangs removed, whitespace collapsed.
+    """
+    cleaned = _EMOJI_PATTERN.sub(repl="", string=text)
+    cleaned = _NOISE_PATTERN.sub(repl="", string=cleaned)
+    cleaned = _SLANG_PATTERN.sub(repl="", string=cleaned)
+    cleaned = re.sub(pattern=r"\s+", repl=" ", string=cleaned).strip()
+    return cleaned
 
 
 class TextEmbeddingService:
@@ -100,9 +176,9 @@ class TextEmbeddingService:
         """
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
         df = pd.read_csv(filepath_or_buffer=self.config.csv_path)
-        texts = df[self.config.column].astype(str).tolist()
+        texts = df[self.config.column].astype(str).map(clean_text).tolist()
         logger.info(
-            "Encoding %d texts from column '%s'", len(texts), self.config.column
+            "Encoding %d cleaned texts from column '%s'", len(texts), self.config.column
         )
 
         embeddings = self._encode(texts=texts, batch_size=self.config.batch_size)

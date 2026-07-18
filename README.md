@@ -65,6 +65,18 @@ Extract SigLIP text embeddings from a CSV column.
 | `batch_size` | int | no | 128 | Texts per forward pass |
 | `device` | string | no | `"cuda"` if available else `"cpu"` | Torch device |
 
+#### Preprocessing - Text Embedding
+
+Before encoding, each title is cleaned through three regex passes:
+
+1. **Emoji removal** — strips Unicode emoji characters
+2. **Noise removal** — strips `\x..` escape sequences, `()`, `[]`, and `!`
+3. **Slang removal** — strips common retail slangs as whole words (`readystock`,
+   `ready stock`, `original`, `best seller`, `promo`, `grosir`, `murah`, `diskon`,
+   `gratis ongkir`, `cod`, `limited`, `brand`, `import`, `viral`, `obral`, …)
+
+Whitespace is collapsed and trimmed at the end.
+
 #### Outputs - Text Embedding
 
 - `{output_dir}/embedding.safetensors` — tensor key `"embeddings"`, shape `(N, 768)`
@@ -94,7 +106,39 @@ Run service:
 docker compose run --rm embedding-text-prompts
 ```
 
-### 3. EDA Service
+### 3. EDA N-Gram Detection Service
+
+Detects common n-grams (bigrams, trigrams, 4-grams) in a text column after
+removing English and Indonesian stop words (loaded from spaCy language data,
+no model download). The output JSON is used by the EDA service for later
+analysis or can be consumed by other services.
+
+#### Config schema (`configs/eda/ngram_detection.json`)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `csv_path` | string | yes | — | Path to the training CSV |
+| `text_column` | string | no | `"title"` | Column with product titles |
+| `output_path` | string | yes | — | Where to save `common_ngrams.json` |
+| `min_frequency` | int | no | `100` | Minimum occurrences for an n-gram to be kept |
+| `n_top` | int | no | `200` | Maximum n-grams to keep (sorted by frequency descending) |
+| `ngram_min_length` | int | no | `2` | Minimum n-gram size in words |
+| `ngram_max_length` | int | no | `4` | Maximum n-gram size in words |
+
+#### Outputs - EDA N-Gram Detection
+
+- `{output_path}` — JSON object with keys:
+  - `ngrams` — list of common n-gram strings
+  - `min_frequency` — the configured minimum frequency threshold
+  - `total_titles` — number of titles processed
+
+#### Usage - EDA N-Gram Detection
+
+```bash
+docker compose up eda-ngram-detection
+```
+
+### 4. EDA Service
 
 Runs zero-shot classification (vision vs. prompt embeddings) and language
 detection on product titles, then merges both scores into the source CSV.
@@ -135,7 +179,7 @@ detection on product titles, then merges both scores into the source CSV.
 docker compose up eda
 ```
 
-### 4. Dataset Split Service
+### 5. Dataset Split Service
 
 Stratifies product groups by variance and splits into train/val/test preserving
 stratum proportions.
@@ -173,7 +217,7 @@ proportions.
 docker compose up dataset-split
 ```
 
-### 5. Retrieval Service
+### 6. Retrieval Service
 
 Runs k-nearest-neighbors search using FAISS (GPU) on pre-computed embeddings,
 filtered to a specific dataset split. Returns retrieved posting IDs as JSON
@@ -218,7 +262,7 @@ is discarded. Retrieved posting IDs are serialized as a JSON string list.
 docker compose up retrieval
 ```
 
-### 6. Evaluation Service
+### 7. Evaluation Service
 
 Computes retrieval metrics (recall@k, precision, recall, f1) from retrieval
 results and produces per-row, overall, and per-stratum summaries.

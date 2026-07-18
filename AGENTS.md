@@ -19,6 +19,7 @@ Applied in the "Shopee - Price Match Garantee" Kaggle competition/dataset.
 - Services configurations in JSON (`configs/` directory)
 - Every service must have the inputs, usage and outputs expected described in
     the project README.md
+- Every service should run as a docker compose service
 - `data/` directory contains the dataset to be used
 - `checkpoints/` directory contains the AI models
 - `tests/` directory contains unity tests

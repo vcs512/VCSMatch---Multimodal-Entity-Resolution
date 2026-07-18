@@ -53,6 +53,16 @@ services:
               count: 1
               capabilities: [gpu]
 
+  eda-ngram-detection:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: uv run python -m src.services.eda.ngram_detection --config configs/eda/ngram_detection.json
+    volumes:
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./data:/app/data
+
   eda:
     build:
       context: .

@@ -1,0 +1,9 @@
+{
+  "csv_path": "data/train.csv",
+  "text_column": "title",
+  "output_path": "data/eda/common_ngrams.json",
+  "min_frequency": 100,
+  "n_top": 50,
+  "ngram_min_length": 2,
+  "ngram_max_length": 4
+}
