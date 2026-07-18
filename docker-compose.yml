@@ -127,3 +127,22 @@ services:
       - ./configs:/app/configs
       - ./data:/app/data
       - ./results:/app/results
+
+  grid-search:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: uv run python -m src.services.grid_search.grid_search --config configs/grid_search/grid_search.json
+    volumes:
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+      - ./mlflow.db:/app/mlflow.db
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

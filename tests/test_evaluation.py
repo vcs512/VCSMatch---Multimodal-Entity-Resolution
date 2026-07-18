@@ -44,8 +44,8 @@ class TestComputePerRowMetrics:
         assert result.loc[0, "precision"] == 1.0
         assert result.loc[0, "recall"] == 1.0
         assert result.loc[0, "f1"] == 1.0
-        assert result.loc[0, "recall@1"] == 0.5
-        assert result.loc[0, "recall@5"] == 1.0
+        assert result.loc[0, "recall-1"] == 0.5
+        assert result.loc[0, "recall-5"] == 1.0
 
     def test_no_relevant_retrieved(self):
         df = _make_retrieval_df(
@@ -58,7 +58,7 @@ class TestComputePerRowMetrics:
         assert result.loc[0, "precision"] == 0.0
         assert result.loc[0, "recall"] == 0.0
         assert result.loc[0, "f1"] == 0.0
-        assert result.loc[0, "recall@1"] == 0.0
+        assert result.loc[0, "recall-1"] == 0.0
 
     def test_partial_relevance(self):
         df = _make_retrieval_df(
@@ -76,7 +76,7 @@ class TestComputePerRowMetrics:
         row_a = result[result["posting_id"] == "a"].iloc[0]
         assert row_a["precision"] == pytest.approx(2 / 3)
         assert row_a["recall"] == pytest.approx(2 / 3)
-        assert row_a["recall@2"] == pytest.approx(2 / 3)
+        assert row_a["recall-2"] == pytest.approx(2 / 3)
 
     def test_empty_retrieved_list(self):
         df = _make_retrieval_df(
@@ -89,7 +89,7 @@ class TestComputePerRowMetrics:
         assert result.loc[0, "precision"] == 0.0
         assert result.loc[0, "recall"] == 0.0
         assert result.loc[0, "f1"] == 0.0
-        assert result.loc[0, "recall@5"] == 0.0
+        assert result.loc[0, "recall-5"] == 0.0
 
     def test_retrieved_less_than_k(self):
         df = _make_retrieval_df(
@@ -99,8 +99,8 @@ class TestComputePerRowMetrics:
             retrieved_lists=[["a"], ["b"]],
         )
         result = compute_per_row_metrics(df=df, recall_ks=[5, 10])
-        assert result.loc[0, "recall@5"] == 0.5
-        assert result.loc[0, "recall@10"] == 0.5
+        assert result.loc[0, "recall-5"] == 0.5
+        assert result.loc[0, "recall-10"] == 0.5
 
     def test_custom_recall_ks(self):
         df = _make_retrieval_df(
@@ -110,9 +110,9 @@ class TestComputePerRowMetrics:
             retrieved_lists=[["a", "b", "c"], ["b", "a", "c"], ["c", "a", "b"]],
         )
         result = compute_per_row_metrics(df=df, recall_ks=[1, 2, 3])
-        assert result.loc[0, "recall@1"] == pytest.approx(1 / 3)
-        assert result.loc[0, "recall@2"] == pytest.approx(2 / 3)
-        assert result.loc[0, "recall@3"] == 1.0
+        assert result.loc[0, "recall-1"] == pytest.approx(1 / 3)
+        assert result.loc[0, "recall-2"] == pytest.approx(2 / 3)
+        assert result.loc[0, "recall-3"] == 1.0
 
 
 class TestSummarizeMetrics:
@@ -125,14 +125,14 @@ class TestSummarizeMetrics:
                 "precision": [1.0, 0.5],
                 "recall": [1.0, 0.5],
                 "f1": [1.0, 0.5],
-                "recall@5": [1.0, 0.5],
+                "recall-5": [1.0, 0.5],
             }
         )
         summary = summarize_metrics(df_metrics=df)
         assert summary["precision"] == 0.75
         assert summary["recall"] == 0.75
         assert summary["f1"] == 0.75
-        assert summary["recall@5"] == 0.75
+        assert summary["recall-5"] == 0.75
 
 
 class TestSummarizeByStratum:
@@ -145,7 +145,7 @@ class TestSummarizeByStratum:
                 "precision": [1.0, 0.5, 0.0, 1.0],
                 "recall": [1.0, 0.5, 0.0, 1.0],
                 "f1": [1.0, 0.5, 0.0, 1.0],
-                "recall@5": [1.0, 0.5, 0.0, 1.0],
+                "recall-5": [1.0, 0.5, 0.0, 1.0],
             }
         )
         result = summarize_by_stratum(df_metrics=df)

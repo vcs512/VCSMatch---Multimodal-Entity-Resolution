@@ -300,3 +300,60 @@ overall means and grouped by stratum.
 ```bash
 docker compose run --rm evaluation
 ```
+
+### 8. Grid Search Service
+
+Grid searches the retrieval cosine similarity `threshold` hyperparameter
+(0.5–0.9, step 0.1) to find the value that maximizes F1 / precision / recall.
+Builds the FAISS GPU index once and reuses it across all thresholds. Logs
+per-threshold metrics to MLFlow and saves a summary plot (`threshold_metrics.jpg`).
+
+#### Config schema (`configs/grid_search/grid_search.json`)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `base_retrieval_config` | string | yes | — | Path to the base retrieval JSON config |
+| `recall_ks` | array[int] | no | `[5, 10, 50]` | k values for recall@k computation |
+| `mlflow_tracking_uri` | string | no | `"sqlite:///mlflow.db"` | MLFlow tracking URI |
+| `mlflow_experiment_name` | string | no | `"retrieval_grid_search"` | MLFlow experiment name |
+| `grid_output_dir` | string | no | `"data/grid_search"` | Root directory for grid-search outputs |
+
+#### Inputs - Grid Search
+
+- Same as the Retrieval service: embeddings, index, and assignments CSV
+  (configured via `base_retrieval_config`)
+
+#### Outputs - Grid Search
+
+```bash
+{grid_output_dir}/
+├── threshold_0.5/
+│   ├── retrieval_results.csv
+│   ├── evaluation_results.csv
+│   └── evaluation_summary.csv
+├── threshold_0.6/
+│   └── ...
+├── threshold_0.7/
+│   └── ...
+├── threshold_0.8/
+│   └── ...
+├── threshold_0.9/
+│   └── ...
+├── results_summary.csv        — all thresholds with their average metrics
+└── threshold_metrics.jpg      — line plot (threshold vs. F1, precision, recall)
+```
+
+#### Usage - Grid Search
+
+Create the MLFlow database file (required for Docker file-volume mount) and run:
+
+```bash
+touch mlflow.db
+docker compose run --rm grid-search
+```
+
+To view results in the MLFlow UI:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db
+```

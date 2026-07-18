@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from pathlib import Path
 
 import faiss
 import numpy as np
@@ -35,6 +36,22 @@ class RetrievalService:
 
     def run(self) -> None:
         """Load embeddings, filter assignments, run FAISS k-NN, and save results."""
+        split_df, split_embeddings, split_index, faiss_index = self.prepare()
+        self.search_and_save(
+            faiss_index=faiss_index,
+            split_df=split_df,
+            split_embeddings=split_embeddings,
+            split_index=split_index,
+            threshold=self.config.threshold,
+            output_dir=self.config.output_dir,
+        )
+
+    def prepare(self) -> tuple[pd.DataFrame, np.ndarray, dict[str, str], faiss.Index]:
+        """Load data, filter by split, and build FAISS index.
+
+        Returns:
+            Tuple of (split_df, split_embeddings, split_index, faiss_index).
+        """
         assignments = pd.read_csv(filepath_or_buffer=self.config.assignments_path)
         split_df = assignments[assignments["split"] == self.config.split].copy()
         logger.info(
@@ -55,15 +72,38 @@ class RetrievalService:
             for i, orig_idx in enumerate(split_indices)
         }
 
-        index_ip = self._build_faiss_index(split_embeddings)
+        faiss_index = self._build_faiss_index(split_embeddings)
+        return split_df, split_embeddings, split_index, faiss_index
+
+    def search_and_save(
+        self,
+        faiss_index: faiss.Index,
+        split_df: pd.DataFrame,
+        split_embeddings: np.ndarray,
+        split_index: dict[str, str],
+        threshold: float,
+        output_dir: Path,
+    ) -> None:
+        """Run k-NN search with a given threshold and save results.
+
+        Args:
+            faiss_index: Pre-built FAISS index.
+            split_df: Filtered assignment rows (from prepare()).
+            split_embeddings: Filtered embeddings for the split.
+            split_index: Map from local row-key to posting_id.
+            threshold: Cosine-similarity threshold.
+            output_dir: Directory to save retrieval_results.csv.
+        """
         results = self._search(
-            index=index_ip,
+            index=faiss_index,
             query_embeddings=split_embeddings,
             index_map=split_index,
+            threshold=threshold,
         )
 
         split_df["retrieved_products"] = results
-        out_path = self.config.output_dir / "retrieval_results.csv"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        out_path = output_dir / "retrieval_results.csv"
         split_df[
             [
                 "posting_id",
@@ -122,6 +162,7 @@ class RetrievalService:
         index: faiss.Index,
         query_embeddings: np.ndarray,
         index_map: dict[str, str],
+        threshold: float | None = None,
     ) -> list[str]:
         """Run k-NN search for each query and format results.
 
@@ -129,12 +170,15 @@ class RetrievalService:
             index: FAISS index containing all embeddings.
             query_embeddings: Embedding array for queries (N, D).
             index_map: Dict mapping row-key to posting_id.
+            threshold: Cosine-similarity threshold. Defaults to config.threshold.
 
         Returns:
             List of JSON string lists of retrieved posting_ids.
         """
+        if threshold is None:
+            threshold = self.config.threshold
         distances, indices = index.search(query_embeddings, self.config.k)
-        mask = distances >= self.config.threshold
+        mask = distances >= threshold
 
         results = []
         for row_indices, row_mask in zip(indices, mask):

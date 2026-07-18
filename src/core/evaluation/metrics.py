@@ -88,7 +88,7 @@ def compute_per_row_metrics(
             "f1": f1,
         }
         for k in recall_ks:
-            row[f"recall@{k}"] = recall_at_k.get(k, 0.0)
+            row[f"recall-{k}"] = recall_at_k.get(k, 0.0)
 
         rows.append(row)
 
