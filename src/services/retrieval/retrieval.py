@@ -123,22 +123,53 @@ class RetrievalService:
         )
 
     def _load_embeddings(self) -> tuple[np.ndarray, dict[str, str]]:
-        """Load embeddings and index from the configured directory.
+        """Load embeddings from all configured directories and apply fusion.
 
         Returns:
             Tuple of (embeddings array, index dict mapping row-key to posting_id).
         """
-        embeddings_path = self.config.embeddings_dir / "embedding.safetensors"
-        index_path = self.config.embeddings_dir / "index.json"
+        embeddings_list = []
+        index: dict[str, str] | None = None
 
-        data = load_file(filename=str(embeddings_path))
-        embeddings = data["embeddings"]
-        logger.info("Loaded embeddings with shape %s", embeddings.shape)
+        for dir_path in self.config.embeddings_dir:
+            embeddings_path = dir_path / "embedding.safetensors"
+            index_path = dir_path / "index.json"
 
-        with open(index_path) as f:
-            index = json.load(f)
+            data = load_file(filename=str(embeddings_path))
+            embeddings = data["embeddings"]
 
-        return embeddings, index
+            with open(index_path) as f:
+                current_index = json.load(f)
+
+            if index is None:
+                index = current_index
+            elif index != current_index:
+                raise ValueError(
+                    f"Index mismatch: {index_path} differs from previously loaded index."
+                )
+
+            embeddings_list.append(embeddings)
+            logger.info("Loaded embeddings from %s shape %s", dir_path, embeddings.shape)
+
+        if len(embeddings_list) == 1:
+            fused = embeddings_list[0]
+        else:
+            fusion_type = self.config.fusion_type
+            if fusion_type == "concat":
+                fused = np.concatenate(embeddings_list, axis=1)
+            elif fusion_type == "sum":
+                fused = sum(embeddings_list)
+            else:
+                raise ValueError(
+                    f"fusion_type must be 'concat' or 'sum' when multiple "
+                    f"embedding dirs are provided, got: {fusion_type}"
+                )
+
+            norms = np.linalg.norm(fused, axis=1, keepdims=True)
+            fused = fused / np.maximum(norms, 1e-12)
+
+        logger.info("Fused embeddings shape %s", fused.shape)
+        return fused, index
 
     def _build_faiss_index(self, embeddings: np.ndarray) -> faiss.Index:
         """Build a FAISS index on GPU using inner product (cosine similarity).

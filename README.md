@@ -227,7 +227,8 @@ lists for each query product.
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `embeddings_dir` | string | yes | — | Directory containing `embedding.safetensors` and `index.json` |
+| `embeddings_dir` | array[string] | yes | — | List of directories containing `embedding.safetensors` and `index.json` (one per modality) |
+| `fusion_type` | string | no | `null` | Fusion strategy when multiple embedding dirs: `"concat"` or `"sum"`. Required if >1 dir |
 | `assignments_path` | string | yes | — | Path to `assignments.csv` with `split` column |
 | `output_dir` | string | yes | — | Directory to write results CSV |
 | `split` | string | no | `"test"` | Which split to query and search within |
@@ -242,10 +243,19 @@ For each query product, the top-k nearest neighbors are retrieved (self-match
 is included) and any neighbor below the cosine-similarity threshold
 is discarded. Retrieved posting IDs are serialized as a JSON string list.
 
+When multiple embedding directories are provided, the service applies the
+configured fusion strategy. `"concat"` concatenates embeddings from all
+directories along the feature axis (increasing dimensionality). `"sum"`
+performs element-wise addition (all embeddings must share the same
+dimensionality). After fusion the resulting vectors are L2-normalized
+before the FAISS index is built.
+
 #### Inputs - Retrieval
 
-- `{embeddings_dir}/embedding.safetensors` — pre-computed embeddings
-- `{embeddings_dir}/index.json` — maps integer index → posting_id
+- `{embeddings_dir[0]}/embedding.safetensors` — pre-computed embeddings
+  (embeddings from all dirs are loaded; the first dir's index is canonical)
+- `{embeddings_dir[0]}/index.json` — maps integer index → posting_id
+  (all dirs must share the same `index.json` mapping)
 - `assignments.csv` — per-row data with `split` and `stratum` columns (from Dataset Split service)
 
 #### Outputs - Retrieval

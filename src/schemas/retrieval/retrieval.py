@@ -8,7 +8,8 @@ from pydantic import BaseModel
 class RetrievalConfig(BaseModel):
     """Configuration for the retrieval service."""
 
-    embeddings_dir: Path
+    embeddings_dir: list[Path]
+    fusion_type: str | None = None
     assignments_path: Path
     output_dir: Path
     split: str = "test"

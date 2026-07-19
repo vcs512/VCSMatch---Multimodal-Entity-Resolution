@@ -1,8 +1,9 @@
 {
-  "embeddings_dir": "data/embeddings/images",
+  "embeddings_dir": ["data/embeddings/images", "data/embeddings/titles"],
+  "fusion_type": "concat",
   "assignments_path": "data/splits/assignments.csv",
-  "output_dir": "data/retrieval/images",
-  "split": "test",
+  "output_dir": "data/retrieval/multimodal_concat",
+  "split": "val",
   "k": 51,
   "threshold": 0.8
 }

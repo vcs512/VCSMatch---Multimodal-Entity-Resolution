@@ -3,5 +3,5 @@
   "recall_ks": [5, 10, 50],
   "mlflow_tracking_uri": "sqlite:///mlflow.db",
   "mlflow_experiment_name": "retrieval_grid_search",
-  "grid_output_dir": "data/grid_search/images"
+  "grid_output_dir": "data/grid_search/multimodal_concat"
 }
