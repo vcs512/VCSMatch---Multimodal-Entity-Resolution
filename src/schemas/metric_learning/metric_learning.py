@@ -19,13 +19,14 @@ class MetricLearningConfig(BaseModel):
         mlflow_tracking_uri: Tracking URI for MLFlow.
         mlflow_experiment_name: MLFlow experiment name.
         projection_dim: Output dimension of the projection head.
+        samples_per_class: Samples per class for MPerClassSampler.
         learning_rate: AdamW learning rate.
         weight_decay: AdamW weight decay for L2 regularization.
         batch_size: Batch size for training and validation loaders.
         num_epochs: Maximum number of training epochs.
         margin: ArcFace margin parameter.
         scale: ArcFace scale parameter.
-        early_stopping_patience: Stop training if val loss does not improve
+        early_stopping_patience: Stop training if val F1 does not improve
             for this many consecutive epochs.
         device: Torch device override (auto-detected if None).
     """

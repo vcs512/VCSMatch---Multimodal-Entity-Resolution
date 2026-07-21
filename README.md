@@ -384,6 +384,8 @@ and saves the best projection head weights.
 | `assignments_path` | string | yes | — | Path to `assignments.csv` with `split` column |
 | `output_dir` | string | yes | — | Directory to write training artifacts |
 | `projection_dim` | int | no | `512` | Output dimension of the projection head |
+| `samples_per_class` | int | no | `4` | Samples per class in a batch |
+| `weight_decay` | float | no | `0.0001` | AdamW weight decay for L2 regularization |
 | `learning_rate` | float | no | `0.001` | AdamW learning rate |
 | `batch_size` | int | no | `256` | Batch size for training and validation loaders |
 | `num_epochs` | int | no | `50` | Maximum number of training epochs |
@@ -404,7 +406,7 @@ and saves the best projection head weights.
 3. **Loss** — `ArcFaceLoss` from `pytorch-metric-learning`, supervised by
    `label_group` mapped to contiguous class IDs.
 4. **Optimizer** — AdamW with cosine annealing LR schedule.
-5. **Early stopping** — if val loss does not improve for 5 consecutive epochs.
+5. **Early stopping** — if val f1-score does not improve for 5 consecutive epochs.
 6. **Per-epoch evaluation** — compute ArcFace loss on train and val sets,
    plus full retrieval evaluation (FAISS GPU k-NN, threshold 0.5, k=51) on
    projected val embeddings. All metrics logged to MLFlow.
