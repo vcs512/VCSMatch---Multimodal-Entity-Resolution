@@ -1,0 +1,18 @@
+{
+  "embeddings_dir": ["data/embeddings/images", "data/embeddings/titles"],
+  "fusion_type": "sum",
+  "assignments_path": "data/splits/assignments.csv",
+  "output_dir": "experiments/metric_learning/multimodal_sum",
+  "mlflow_tracking_uri": "sqlite:///mlflow.db",
+  "mlflow_experiment_name": "metric_learning",
+  "projection_dim": 512,
+  "samples_per_class": 4,
+  "learning_rate": 0.0001,
+  "weight_decay": 0.01,
+  "batch_size": 256,
+  "num_epochs": 50,
+  "margin": 0.20,
+  "scale": 20.0,
+  "early_stopping_patience": 5,
+  "device": "cuda"
+}

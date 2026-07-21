@@ -367,3 +367,68 @@ To view results in the MLFlow UI:
 ```bash
 mlflow ui --backend-store-uri sqlite:///mlflow.db
 ```
+
+### 9. Metric Learning Service
+
+Trains a projection head (dense 512) with ArcFace loss on top of frozen
+pre-computed embeddings. Uses the train split for optimization and the val
+split for validation + retrieval evaluation. Logs per-epoch metrics to MLFlow
+and saves the best projection head weights.
+
+#### Config schema (`configs/metric_learning/train.json`)
+
+| Field | Type | Required | Default | Description |
+|---|---|---|---|---|
+| `embeddings_dir` | array[string] | yes | — | List of directories containing `embedding.safetensors` and `index.json` (one per modality) |
+| `fusion_type` | string | no | `null` | Fusion strategy when multiple embedding dirs: `"concat"` or `"sum"`. Required if >1 dir |
+| `assignments_path` | string | yes | — | Path to `assignments.csv` with `split` column |
+| `output_dir` | string | yes | — | Directory to write training artifacts |
+| `projection_dim` | int | no | `512` | Output dimension of the projection head |
+| `learning_rate` | float | no | `0.001` | AdamW learning rate |
+| `batch_size` | int | no | `256` | Batch size for training and validation loaders |
+| `num_epochs` | int | no | `50` | Maximum number of training epochs |
+| `margin` | float | no | `28.6` | ArcFace margin parameter |
+| `scale` | float | no | `64.0` | ArcFace scale parameter |
+| `early_stopping_patience` | int | no | `5` | Stop if val loss does not improve for N consecutive epochs |
+| `device` | string | no | auto | Torch device override (`"cuda"` or `"cpu"`) |
+| `mlflow_tracking_uri` | string | no | `"sqlite:///mlflow.db"` | MLFlow tracking URI |
+| `mlflow_experiment_name` | string | no | `"metric_learning"` | MLFlow experiment name |
+
+#### Strategy - Metric Learning
+
+1. **Embedding loading & fusion** — identical semantics to the Retrieval
+   service (load `.safetensors`, validate index match, apply concat/sum
+   fusion, L2-normalize).
+2. **Projection head** — `Linear(input_dim, 512) → BatchNorm1d(512) → Dropout(0.5)`,
+   output L2-normalized via `forward`. Trained from scratch.
+3. **Loss** — `ArcFaceLoss` from `pytorch-metric-learning`, supervised by
+   `label_group` mapped to contiguous class IDs.
+4. **Optimizer** — AdamW with cosine annealing LR schedule.
+5. **Early stopping** — if val loss does not improve for 5 consecutive epochs.
+6. **Per-epoch evaluation** — compute ArcFace loss on train and val sets,
+   plus full retrieval evaluation (FAISS GPU k-NN, threshold 0.5, k=51) on
+   projected val embeddings. All metrics logged to MLFlow.
+7. **Artifacts saved** — best projection head weights (`projection_head.pt`)
+   and final retrieval metrics (`metrics_summary.csv`).
+
+#### Inputs - Metric Learning
+
+- `{embeddings_dir[0]}/embedding.safetensors` — pre-computed embeddings
+  (all dirs loaded; first dir's index is canonical)
+- `{embeddings_dir[0]}/index.json` — maps integer index → posting_id
+  (all dirs must share the same mapping)
+- `assignments.csv` — per-row data with `split` (train/val/test) and
+  `label_group` columns (from Dataset Split service)
+
+#### Outputs - Metric Learning
+
+- `{output_dir}/projection_head.pt` — state dict of the best projection head
+- `{output_dir}/metrics_summary.csv` — final retrieval metrics on the val set
+  (avg_precision, avg_recall, avg_f1, recall@5, recall@10, recall@50)
+
+#### Usage - Metric Learning
+
+```bash
+touch mlflow.db
+docker compose run --rm metric-learning
+```

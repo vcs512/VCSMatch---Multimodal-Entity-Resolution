@@ -137,6 +137,27 @@ services:
       - ./src:/app/src
       - ./configs:/app/configs
       - ./data:/app/data
+      - ./results:/app/results
+      - ./checkpoints:/app/checkpoints
+      - ./mlflow.db:/app/mlflow.db
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  metric-learning:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    command: uv run python -m src.services.metric_learning.train --config configs/metric_learning/train.json
+    volumes:
+      - ./src:/app/src
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - ./experiments:/app/experiments
       - ./checkpoints:/app/checkpoints
       - ./mlflow.db:/app/mlflow.db
     deploy:

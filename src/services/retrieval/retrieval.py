@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 
 import faiss
 import numpy as np
 import pandas as pd
-from safetensors.numpy import load_file
 
+from src.core.embeddings.faiss_utils import build_gpu_index, search_and_format
+from src.core.embeddings.loader import filter_embeddings_by_split, load_embeddings
 from src.schemas.retrieval.retrieval import RetrievalConfig
 
 logger = logging.getLogger(__name__)
@@ -60,19 +60,14 @@ class RetrievalService:
             self.config.split,
         )
 
-        embeddings, index = self._load_embeddings()
-        split_posting_ids = set(split_df["posting_id"].tolist())
-        split_indices = [
-            int(k) for k, v in index.items() if v in split_posting_ids
-        ]
-        split_indices.sort()
-        split_embeddings = embeddings[split_indices]
-        split_index = {
-            str(i): index[str(orig_idx)]
-            for i, orig_idx in enumerate(split_indices)
-        }
+        embeddings, index = load_embeddings(
+            self.config.embeddings_dir, self.config.fusion_type
+        )
+        split_embeddings, split_index = filter_embeddings_by_split(
+            embeddings=embeddings, index=index, split_df=split_df,
+        )
 
-        faiss_index = self._build_faiss_index(split_embeddings)
+        faiss_index = build_gpu_index(split_embeddings)
         return split_df, split_embeddings, split_index, faiss_index
 
     def search_and_save(
@@ -94,10 +89,11 @@ class RetrievalService:
             threshold: Cosine-similarity threshold.
             output_dir: Directory to save retrieval_results.csv.
         """
-        results = self._search(
+        results = search_and_format(
             index=faiss_index,
             query_embeddings=split_embeddings,
             index_map=split_index,
+            k=self.config.k,
             threshold=threshold,
         )
 
@@ -121,103 +117,6 @@ class RetrievalService:
             len(split_df),
             out_path,
         )
-
-    def _load_embeddings(self) -> tuple[np.ndarray, dict[str, str]]:
-        """Load embeddings from all configured directories and apply fusion.
-
-        Returns:
-            Tuple of (embeddings array, index dict mapping row-key to posting_id).
-        """
-        embeddings_list = []
-        index: dict[str, str] | None = None
-
-        for dir_path in self.config.embeddings_dir:
-            embeddings_path = dir_path / "embedding.safetensors"
-            index_path = dir_path / "index.json"
-
-            data = load_file(filename=str(embeddings_path))
-            embeddings = data["embeddings"]
-
-            with open(index_path) as f:
-                current_index = json.load(f)
-
-            if index is None:
-                index = current_index
-            elif index != current_index:
-                raise ValueError(
-                    f"Index mismatch: {index_path} differs from previously loaded index."
-                )
-
-            embeddings_list.append(embeddings)
-            logger.info("Loaded embeddings from %s shape %s", dir_path, embeddings.shape)
-
-        if len(embeddings_list) == 1:
-            fused = embeddings_list[0]
-        else:
-            fusion_type = self.config.fusion_type
-            if fusion_type == "concat":
-                fused = np.concatenate(embeddings_list, axis=1)
-            elif fusion_type == "sum":
-                fused = sum(embeddings_list)
-            else:
-                raise ValueError(
-                    f"fusion_type must be 'concat' or 'sum' when multiple "
-                    f"embedding dirs are provided, got: {fusion_type}"
-                )
-
-            norms = np.linalg.norm(fused, axis=1, keepdims=True)
-            fused = fused / np.maximum(norms, 1e-12)
-
-        logger.info("Fused embeddings shape %s", fused.shape)
-        return fused, index
-
-    def _build_faiss_index(self, embeddings: np.ndarray) -> faiss.Index:
-        """Build a FAISS index on GPU using inner product (cosine similarity).
-
-        Args:
-            embeddings: L2-normalized array of shape (N, D).
-
-        Returns:
-            FAISS Index with vectors added.
-        """
-        dim = embeddings.shape[1]
-        cpu_index = faiss.IndexFlatIP(dim)
-        res = faiss.StandardGpuResources()
-        gpu_index = faiss.index_cpu_to_gpu(res, 0, cpu_index)
-        gpu_index.add(embeddings)
-        logger.info("Built FAISS GPU index with %d vectors", gpu_index.ntotal)
-        return gpu_index
-
-    def _search(
-        self,
-        index: faiss.Index,
-        query_embeddings: np.ndarray,
-        index_map: dict[str, str],
-        threshold: float | None = None,
-    ) -> list[str]:
-        """Run k-NN search for each query and format results.
-
-        Args:
-            index: FAISS index containing all embeddings.
-            query_embeddings: Embedding array for queries (N, D).
-            index_map: Dict mapping row-key to posting_id.
-            threshold: Cosine-similarity threshold. Defaults to config.threshold.
-
-        Returns:
-            List of JSON string lists of retrieved posting_ids.
-        """
-        if threshold is None:
-            threshold = self.config.threshold
-        distances, indices = index.search(query_embeddings, self.config.k)
-        mask = distances >= threshold
-
-        results = []
-        for row_indices, row_mask in zip(indices, mask):
-            retrieved = [index_map[str(i)] for i in row_indices[row_mask]]
-            results.append(json.dumps(retrieved))
-
-        return results
-
 
 if __name__ == "__main__":
     import argparse
