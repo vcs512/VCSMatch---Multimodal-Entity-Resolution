@@ -15,3 +15,5 @@ class RetrievalConfig(BaseModel):
     split: str = "test"
     k: int = 50
     threshold: float = 0.5
+    projection_head_path: Path | None = None
+    projection_dim: int = 512

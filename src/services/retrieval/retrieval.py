@@ -6,9 +6,11 @@ from pathlib import Path
 import faiss
 import numpy as np
 import pandas as pd
+import torch
 
 from src.core.embeddings.faiss_utils import build_gpu_index, search_and_format
 from src.core.embeddings.loader import filter_embeddings_by_split, load_embeddings
+from src.core.models.projection_head import ProjectionHead
 from src.schemas.retrieval.retrieval import RetrievalConfig
 
 logger = logging.getLogger(__name__)
@@ -46,8 +48,38 @@ class RetrievalService:
             output_dir=self.config.output_dir,
         )
 
+    def _load_projection_head(
+        self, input_dim: int, projection_dim: int
+    ) -> ProjectionHead:
+        """Load a trained projection head from a checkpoint.
+
+        Args:
+            input_dim: Dimensionality of the input embeddings.
+            projection_dim: Dimensionality of the projected embeddings.
+
+        Returns:
+            Loaded ProjectionHead in eval mode.
+        """
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        model = ProjectionHead(
+            input_dim=input_dim, projection_dim=projection_dim
+        ).to(self._device)
+        state_dict = torch.load(
+            self.config.projection_head_path,
+            map_location=self._device,
+            weights_only=True,
+        )
+        model.load_state_dict(state_dict)
+        model.eval()
+        logger.info(
+            "Loaded projection head on %s from %s",
+            self._device,
+            self.config.projection_head_path,
+        )
+        return model
+
     def prepare(self) -> tuple[pd.DataFrame, np.ndarray, dict[str, str], faiss.Index]:
-        """Load data, filter by split, and build FAISS index.
+        """Load data, filter by split, optionally apply projection head, and build FAISS index.
 
         Returns:
             Tuple of (split_df, split_embeddings, split_index, faiss_index).
@@ -66,6 +98,17 @@ class RetrievalService:
         split_embeddings, split_index = filter_embeddings_by_split(
             embeddings=embeddings, index=index, split_df=split_df,
         )
+
+        if self.config.projection_head_path is not None:
+            model = self._load_projection_head(
+                input_dim=embeddings.shape[1],
+                projection_dim=self.config.projection_dim,
+            )
+            emb_tensor = (
+                torch.from_numpy(split_embeddings).float().to(self._device)
+            )
+            with torch.no_grad():
+                split_embeddings = model(emb_tensor).cpu().numpy()
 
         faiss_index = build_gpu_index(split_embeddings)
         return split_df, split_embeddings, split_index, faiss_index

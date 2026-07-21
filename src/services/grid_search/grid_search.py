@@ -19,7 +19,7 @@ matplotlib.use("Agg")
 
 logger = logging.getLogger(__name__)
 
-THRESHOLDS = [0.5, 0.6, 0.7, 0.8, 0.9]
+THRESHOLDS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
 METRIC_COLUMNS = ["avg_f1", "avg_precision", "avg_recall"]
 

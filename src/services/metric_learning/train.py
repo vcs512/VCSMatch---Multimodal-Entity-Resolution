@@ -21,7 +21,7 @@ from src.core.evaluation.metrics import (
 from src.core.embeddings.faiss_utils import build_gpu_index, search_and_format
 from src.core.embeddings.loader import filter_embeddings_by_split, load_embeddings
 from src.services.metric_learning.dataset import EmbeddingDataset
-from src.services.metric_learning.projection_head import ProjectionHead
+from src.core.models.projection_head import ProjectionHead
 from src.schemas.metric_learning.metric_learning import MetricLearningConfig
 
 logger = logging.getLogger(__name__)

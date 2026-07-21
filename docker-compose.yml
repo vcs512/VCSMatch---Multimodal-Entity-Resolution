@@ -109,6 +109,7 @@ services:
       - ./configs:/app/configs
       - ./data:/app/data
       - ./checkpoints:/app/checkpoints
+      - ./experiments:/app/experiments
     deploy:
       resources:
         reservations:
@@ -139,6 +140,7 @@ services:
       - ./data:/app/data
       - ./results:/app/results
       - ./checkpoints:/app/checkpoints
+      - ./experiments:/app/experiments
       - ./mlflow.db:/app/mlflow.db
     deploy:
       resources:

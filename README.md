@@ -234,6 +234,8 @@ lists for each query product.
 | `split` | string | no | `"test"` | Which split to query and search within |
 | `k` | int | no | 50 | Number of nearest neighbors |
 | `threshold` | float | no | 0.5 | Minimum cosine similarity to retain a neighbor |
+| `projection_head_path` | string | no | `null` | Path to a trained `projection_head.pt` (from Metric Learning service). When set, embeddings are projected through this head before indexing |
+| `projection_dim` | int | no | 512 | Output dimension of the projection head (must match the checkpoint) |
 
 #### Strategy - Retrieval
 
@@ -250,6 +252,12 @@ performs element-wise addition (all embeddings must share the same
 dimensionality). After fusion the resulting vectors are L2-normalized
 before the FAISS index is built.
 
+When `projection_head_path` is set, the fused (and filtered) embeddings are
+passed through the trained projection head (Linear → BatchNorm → Dropout,
+L2-normalized) before building the FAISS index. The head is loaded on GPU
+if available, otherwise CPU. This allows serving a metric-learning refined
+embedding space for retrieval.
+
 #### Inputs - Retrieval
 
 - `{embeddings_dir[0]}/embedding.safetensors` — pre-computed embeddings
@@ -257,6 +265,7 @@ before the FAISS index is built.
 - `{embeddings_dir[0]}/index.json` — maps integer index → posting_id
   (all dirs must share the same `index.json` mapping)
 - `assignments.csv` — per-row data with `split` and `stratum` columns (from Dataset Split service)
+- `projection_head.pt` — (optional) trained projection head checkpoint from Metric Learning service
 
 #### Outputs - Retrieval
 
@@ -424,7 +433,8 @@ and saves the best projection head weights.
 
 #### Outputs - Metric Learning
 
-- `{output_dir}/projection_head.pt` — state dict of the best projection head
+- `{output_dir}/projection_head.pt` — state dict of the best projection head.
+  Can be loaded by the Retrieval service via `projection_head_path`.
 - `{output_dir}/metrics_summary.csv` — final retrieval metrics on the val set
   (avg_precision, avg_recall, avg_f1, recall@5, recall@10, recall@50)
 
