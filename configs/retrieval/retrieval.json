@@ -2,9 +2,9 @@
   "embeddings_dir": ["data/embeddings/images", "data/embeddings/titles"],
   "fusion_type": "sum",
   "assignments_path": "data/splits/assignments.csv",
-  "output_dir": "data/retrieval/multimodal_sum_metric",
-  "split": "val",
+  "output_dir": "results/retrieval/multimodal_concat_metric",
+  "split": "test",
   "k": 51,
-  "threshold": 0.8,
+  "threshold": 0.5,
   "projection_head_path": "experiments/metric_learning/multimodal_sum/projection_head.pt"
 }

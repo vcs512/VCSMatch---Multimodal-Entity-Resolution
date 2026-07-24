@@ -14,11 +14,77 @@ Experiments include:
 - Naive fusion analysis: simple multimodal composition (concatenation, sum)
 - Specialized head tuning: usage of metric learning heads
 
+## Pipeline Scripts
+
+The `scripts/` directory contains shell scripts that orchestrate multiple services
+into end-to-end pipelines using `docker compose run --rm`.
+
+### Execution order
+
+| Step | Script | Description |
+|---|---|---|
+| 1 | `scripts/create_embeddings.sh` | Extract vision, title, and prompt embeddings via SigLIP |
+| 2 | `scripts/prepare_data.sh` | EDA (zero-shot + language detection) + stratified dataset split |
+| 3 | `scripts/evaluate_frozen_embeddings.sh` | Grid-search threshold on **val** split for 4 frozen variants |
+| 4 | `scripts/train_metric_heads.sh` | Train projection head (ArcFace) for each variant |
+| 5 | `scripts/evaluate_metric.sh` | Grid-search threshold with trained heads on **val** split |
+| 6 | `scripts/evaluate_frozen_test.sh` | Best frozen threshold → retrieval + evaluation on **test** split |
+| 7 | `scripts/evaluate_metric_test.sh` | Best metric threshold → retrieval + evaluation on **test** split |
+
+### Variants
+
+Each of scripts 3–7 runs 4 embedding/fusion variants:
+
+| Variant | Embeddings | Fusion | Metric head |
+|---|---|---|---|
+| `images` | vision only | none | `experiments/metric_learning/images/` |
+| `titles` | text only | none | `experiments/metric_learning/titles/` |
+| `multimodal_concat` | vision + text | concatenation | `experiments/metric_learning/multimodal_concat/` |
+| `multimodal_sum` | vision + text | element-wise sum | `experiments/metric_learning/multimodal_sum/` |
+
+### Output directories
+
+| Script | Grid-search outputs | Retrieval outputs | Evaluation outputs |
+|---|---|---|---|
+| 3 (frozen val) | `results/grid_search/<variant>/` | — | — |
+| 5 (metric val) | `results/grid_search/<variant>_metric/` | — | — |
+| 6 (frozen test) | — | `results/retrieval/<variant>_best/` | `results/evaluation/<variant>_best/` |
+| 7 (metric test) | — | `results/retrieval/<variant>_metric_best/` | `results/evaluation/<variant>_metric_best/` |
+
+### Usage
+
+```bash
+# 1. Generate embeddings
+bash scripts/create_embeddings.sh
+
+# 2. Prepare augmented data and splits
+bash scripts/prepare_data.sh
+
+# 3. Evaluate frozen embeddings on val split
+bash scripts/evaluate_frozen_embeddings.sh
+
+# 4. Train metric learning heads
+bash scripts/train_metric_heads.sh
+
+# 5. Evaluate trained metric heads on val split
+bash scripts/evaluate_metric.sh
+
+# 6. Evaluate best frozen thresholds on test split
+bash scripts/evaluate_frozen_test.sh
+
+# 7. Evaluate best metric thresholds on test split
+bash scripts/evaluate_metric_test.sh
+```
+
+### Note
+
+Before running scripts 4–7, ensure `mlflow.db` exists:
+
+```bash
+touch mlflow.db
+```
+
 ## Docker
-
-All services are exposed as Docker Compose services in `docker-compose.yml`.
-
-## Services
 
 ### 1. Vision Embedding Service
 

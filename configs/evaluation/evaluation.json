@@ -1,5 +1,5 @@
 {
-  "retrieval_results_path": "data/retrieval/images/retrieval_results.csv",
-  "output_dir": "results/evaluation/images",
+  "retrieval_results_path": "results/retrieval/multimodal_concat_metric/retrieval_results.csv",
+  "output_dir": "results/evaluation/multimodal_concat_metric",
   "recall_ks": [5, 10, 50]
 }
